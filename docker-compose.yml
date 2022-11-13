@@ -1,16 +1,29 @@
-version: '3.4'
-
+version: '3.8'
 services:
-  training:
-    image: training
+  #php service
+  php:
     build:
       context: .
-      dockerfile: ./Dockerfile
-  
+      target: php
+      args:
+        - APP_ENV=${APP_ENV}
+    environment:
+      - APP_ENV=${APP_ENV}
+      - CONTAINER_ROLE=app
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    ports:
+      - 8000:8000
+    depends_on:
+      - database
+      - redis
+
+  #database
   database:
     image: mysql:8.0
     ports:
-      -3306:3306
+      - 3306:3306
     environment:
       - MYSQL_DATABASE=${DB_DATABASE}
       - MYSQL_USER=${DB_USERNAME}
@@ -19,5 +32,25 @@ services:
     volumes:
       - db-data:/var/lib/mysql
 
-  volumes:
-    db-data: ~
+  #Redis
+  redis:
+    image: redis:alpine
+    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
+    ports:
+      - 6379:6379
+
+  #queue
+  queue:
+    build:
+      context: .
+      target: php
+      args:
+        - APP_ENV=${APP_ENV}
+    environment:
+      - APP_ENV=${APP_ENV}
+      - CONTAINER_ROLE=queue
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+volumes:
+  db-data: ~
