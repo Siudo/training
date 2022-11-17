@@ -1,56 +1,51 @@
-version: '3.8'
+version: "4.11"
 services:
-  #php service
-  php:
-    build:
-      context: .
-      target: php
-      args:
-        - APP_ENV=${APP_ENV}
-    environment:
-      - APP_ENV=${APP_ENV}
-      - CONTAINER_ROLE=app
-    working_dir: /var/www
-    volumes:
-      - ./:/var/www
-    ports:
-      - 8000:8000
-    depends_on:
-      - database
-      - redis
+    app:
+        build:
+            args:
+                user: admin
+                uid: 123456
+            context: ./
+            dockerfile: Dockerfile
+        image: php:8.1-fpm
+        container_name: training_docker
+        restart: unless-stopped
+        working_dir: /var/www/
+        volumes:
+            - ./:/var/www/
+        networks:
+            - training_docker
 
-  #database
-  database:
-    image: mysql:8.0
-    ports:
-      - 3306:3306
-    environment:
-      - MYSQL_DATABASE=${DB_DATABASE}
-      - MYSQL_USER=${DB_USERNAME}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
-      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - db-data:/var/lib/mysql
+    nginx:
+        image: nginx:1.17-alpine
+        container_name: training_nginx
+        restart: unless-stopped
+        working_dir: /var/www/
+        ports:
+            - "8000:80"
+        volumes:
+            - ./:/var/www/
+            - ./Docker/nginx:/etc/nginx/conf.d
+        networks:
+            - training_docker
 
-  #Redis
-  redis:
-    image: redis:alpine
-    command: redis-server --appendonly yes --requirepass "${REDIS_PASSWORD}"
-    ports:
-      - 6379:6379
 
-  #queue
-  queue:
-    build:
-      context: .
-      target: php
-      args:
-        - APP_ENV=${APP_ENV}
-    environment:
-      - APP_ENV=${APP_ENV}
-      - CONTAINER_ROLE=queue
-    working_dir: /var/www
-    volumes:
-      - ./:/var/www
-volumes:
-  db-data: ~
+    db:
+        image: bitnami/mysql:5.7.29-debian-10-r51
+        container_name: training_mysql
+        restart: unless-stopped
+        ports:
+            - "3308:3306"
+        volumes:
+            - ./Docker/mysql:/docker-entrypoint-init-db.d
+        environment:
+            - MYSQL_DATABASE=${DB_DATABASE}
+            - MYSQL_USER=${DB_USERNAME}
+            - MYSQL_PASSWORD=${DB_PASSWORD}
+            - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+        networks:
+            - training_docker
+
+networks:
+  training_docker:
+    driver: bridge
