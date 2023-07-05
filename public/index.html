@@ -1,0 +1,48 @@
+<html>
+    <body>
+        <input type="text" name="chat1" id="chat1">
+        <button id="submit"> submit</button>
+        <button id="room"> room 1</button>
+        <button id="public">Public</button>
+        <p>Here</p>
+        <script src="https://code.jquery.com/jquery-3.6.4.min.js" integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
+        <script>
+            const websocket = new WebSocket("ws:127.0.0.1:9503");
+            var data = {channel: "public", message: null, status: 'chating'};
+            $('#room').on('click', function (e) {
+                e.preventDefault();
+                data.channel = "room1";
+                data.status = "join";
+                websocket.send(JSON.stringify(data));
+                data.status = "chating";
+            });
+
+            
+            $('#public').on('click', function (e) {
+                e.preventDefault();
+                data.channel = "public";
+                data.status = "join";
+                websocket.send(JSON.stringify(data));
+                data.status = "chating";
+            });
+
+            $('#chat1').on('change', function () {
+                data.message = $(this).val();
+            });
+
+            websocket.addEventListener("open", (event) => {
+                websocket.send("ping");
+            });
+
+            websocket.addEventListener("message", (event) => {
+                console.log(event);
+                $("p").append(`<br>${event.data}`);
+            });
+            $('#submit').on('click', function (e) {
+                e.preventDefault();
+                websocket.send(JSON.stringify(data));
+                data.status = 'chating';
+            });
+        </script>
+    </body>
+</html>
