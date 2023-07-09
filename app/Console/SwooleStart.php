@@ -6,6 +6,8 @@ use Illuminate\Console\Command;
 use OpenSwoole\Table;
 use OpenSwoole\WebSocket\Frame;
 use OpenSwoole\WebSocket\Server;
+use OpenSwoole\Http\Request;
+use OpenSwoole\Http\Response;
 
 class SwooleStart extends Command
 {
@@ -41,7 +43,7 @@ class SwooleStart extends Command
             $this->info("OpenSwoole WebSocket Server is started at http://127.0.0.1:9502");
         });
 
-        $server->on('open', function(Server $server, \OpenSwoole\Http\Request $request) use ($fds)
+        $server->on('open', function(Server $server, Request $request) use ($fds)
         {
             $fd = $request->fd;
             $clientName = sprintf("Client-%'.06d\n", $request->fd);
@@ -70,7 +72,7 @@ class SwooleStart extends Command
                         'name' => $fds->get($frame->fd, 'name'),
                         'channel' => $frame->data->channel
                     ]);
-                    $server->push($frame->fd, "Joined room 1");
+                    $server->push($frame->fd, "Joined {$frame->data->channel}");
                 } else {
                     foreach ($fds as $key => $value) {
                         if ($fds->get($key, 'channel') == $frame->data->channel) {
@@ -81,6 +83,20 @@ class SwooleStart extends Command
             } else {
                 $server->push($frame->fd, "Pong");
             }
+        });
+
+        $server->on('request', function(Request $request, Response $response) use ($fds)
+        {
+            $params = [];
+            if (isset($request->server['query_string'])) {
+                parse_str($request->server['query_string'], $params);
+            }
+        
+            if (isset($params['name'])) {
+                $user = $params['name'];
+            }
+            
+            $response->end();
         });
 
         $server->on('close', function(Server $server, int $fd) use ($fds)

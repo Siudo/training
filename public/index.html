@@ -43,6 +43,24 @@
                 websocket.send(JSON.stringify(data));
                 data.status = 'chating';
             });
+
+            fetch('http://127.0.0.1:9503?name=abc', {
+                method: 'GET',
+                mode: 'no-cors',
+                headers: {
+                    'Access-Control-Allow-Origin':'*'
+                }
+            })
+            .then(function (response) {
+                console.log('Received response:', response.text());
+                return response.text();
+            })
+            .then(function (data) {
+                console.log('Received data:', data);
+            })
+            .catch(function (error) {
+                console.error('Request error:', error);
+            });
         </script>
     </body>
 </html>
